@@ -11,34 +11,6 @@ def get_html_data(url):
 
   return html
 
-
-async def fetch_url(session, url):
-  async with session.get(url, timeout = 60) as response:
-    print(f"Collecting games from: {url}")
-    return await response.text()
-
-async def fetch_all_urls(session, urls, loop):
-  results = await asyncio.gather(*[fetch_url(session, url) for url in urls],
-                                 return_exceptions = True)
-  return results
-
-def get_htmls(urls):
-  if len(urls) > 1:
-    loop = asyncio.get_event_loop()
-    connector = aiohttp.TCPConnector(limit = 100)
-    with aiohttp.ClientSession(loop = loop, connector = connector) as session:
-      htmls = loop.run_until_complete(fetch_all_urls(session, urls, loop))
-    raw_result = dict(zip(urls, htmls))
-  else:
-    raw_result = {url[0]: requests.get(urls[0]).text}
-
-  return raw_result
-
-
-
-
-
-
 def get_max_page_number(url):
 
   print(f"Collecting max page number from: {url}")
@@ -56,19 +28,33 @@ def get_max_page_number(url):
 
   return max_page_number
 
-def get_game_list(url):
-
+async def get_games_async(session, url):
   print(f"Collecting games from: {url}")
 
-  games = set()
+  async with session.get(url, timeout = 60) as response:
+    games = set()
 
-  html_tree = etree.HTML(get_html_data(url))
-  for _, elem in etree.iterwalk(html_tree, tag = "a", ):
-    if ("class" in elem.attrib) and \
-       elem.attrib["class"] == "product-title px_list_page_product_click list_page_product_tracking_target":
-      games.add(elem.text.replace("\n", ""))
+    html = await response.text()
 
-  return games
+    html_tree = etree.HTML(html)
+    for _, elem in etree.iterwalk(html_tree, tag = "a"):
+      if ("class" in elem.attrib) and \
+         elem.attrib["class"] == "product-title px_list_page_product_click list_page_product_tracking_target":
+        games.add(elem.text.replace("\n", ""))
+
+    return games
+
+async def get_all_games(urls):
+  print("Extracting game lists")
+
+  async with aiohttp.ClientSession() as session:
+    tasks = []
+    for url in urls:
+      tasks.append(asyncio.create_task(get_games_async(session, url)))
+
+    games = await asyncio.gather(*tasks)
+
+  return set().union(*games)
 
 def check_games(game_list, log_dir):
 
@@ -95,9 +81,9 @@ def check_games(game_list, log_dir):
       new_games.add(game)
 
   if new_games:
-    print("#######################\n")
-    print("### New games found ###\n")
-    print("#######################\n")
+    print("#######################")
+    print("### New games found ###")
+    print("#######################")
     print('\n'.join(sorted(new_games)))
 
   # Find games that were removed
@@ -107,10 +93,15 @@ def check_games(game_list, log_dir):
       removed_games.add(game)
 
   if removed_games:
-    print("\n###########################\n")
-    print("### Removed games found ###\n")
-    print("###########################\n")
+    print("\n###########################")
+    print("### Removed games found ###")
+    print("###########################")
     print('\n'.join(sorted(removed_games)))
+
+  if (not new_games) and (not removed_games):
+    print("##################")
+    print("### No changes ###")
+    print("##################")
 
   # Update the previous game list
   with open(prev_game_list_file, 'w') as f:
@@ -122,16 +113,9 @@ base_url = "https://www.bol.com/be/nl/l/games-voor-de-ps5/51867/?page={0}"
 log_dir = "./logs"
 
 max_page_number = get_max_page_number((base_url.format(1)))
-#max_page_number = 2
 
 urls = [base_url.format(i) for i in range(1, max_page_number + 1)]
-result_dict = get_htmls(urls)
 
-all_games = set()
-
-for i in range(1, max_page_number + 1):
-  url = base_url.format(i)
-  all_games = all_games.union(get_game_list(url))
+all_games = asyncio.run(get_all_games(urls))
 
 check_games(all_games, log_dir)
-
