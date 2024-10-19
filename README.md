@@ -1,6 +1,6 @@
 # Game checker
 
-Checks if a new game if available in the store
+Checks if a new game is available in the store
 
 ## Packages
 
