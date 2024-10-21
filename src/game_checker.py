@@ -1,9 +1,15 @@
 import os
+import argparse
+import time
+import datetime
 
 import asyncio
 import aiohttp
 import requests
 from lxml import etree
+
+import smtplib, ssl
+import getpass
 
 # Get the HTML from a url
 def get_html_data(url):
@@ -58,7 +64,7 @@ async def get_all_games(urls):
 
 def check_games(game_list, log_dir):
 
-  print(f"\nChecking game lists\n")
+  print(f"\nChecking game lists")
 
   os.makedirs(log_dir, exist_ok = True)
 
@@ -81,7 +87,7 @@ def check_games(game_list, log_dir):
       new_games.add(game)
 
   if new_games:
-    print("#######################")
+    print("\n#######################")
     print("### New games found ###")
     print("#######################")
     print('\n'.join(sorted(new_games)))
@@ -99,7 +105,7 @@ def check_games(game_list, log_dir):
     print('\n'.join(sorted(removed_games)))
 
   if (not new_games) and (not removed_games):
-    print("##################")
+    print("\n##################")
     print("### No changes ###")
     print("##################")
 
@@ -107,15 +113,72 @@ def check_games(game_list, log_dir):
   with open(prev_game_list_file, 'w') as f:
     f.write('\n'.join(sorted(game_list)))
 
+  return new_games, removed_games
+
+def send_email(sender_email, receiver_email, password, new_games,
+               removed_games):
+
+  print(f"\nSending mail")
+
+  port = 465  # For SSL
+  smtp_server = "smtp.gmail.com"
+  message = "Subject: Game list update\n\n"
+
+  if new_games:
+    message += "\n#######################\n"
+    message += "### New games found ###\n"
+    message += "#######################\n\n"
+    message += '\n'.join(sorted(new_games))
+    message += "\n"
+
+  if removed_games:
+    message += "\n###########################\n"
+    message += "### Removed games found ###\n"
+    message += "###########################\n\n"
+    message += '\n'.join(sorted(removed_games))
+    message += "\n"
+
+  context = ssl.create_default_context()
+  with smtplib.SMTP_SSL(smtp_server, port, context = context) as server:
+    server.login(sender_email, password)
+    server.sendmail(sender_email, receiver_email, message)
 
 
-base_url = "https://www.bol.com/be/nl/l/games-voor-de-ps5/51867/?page={0}"
+# Setup program interface
+parser = argparse.ArgumentParser(prog        = "game_checker" ,
+                                 description = "Check game availability")
+parser.add_argument("-e", "--with_email",
+                    action = "store_true",
+                    help   = "Send email notifications")
+args = parser.parse_args()
+
+# Get email info if needed
+if args.with_email:
+  sender_email   = input("Type the sender email and press enter: ")
+  receiver_email = input("type the receiver email and press enter: ")
+  password       = getpass.getpass(prompt = "Type your password and press enter: ")
+
+# Check the games
+#base_url = "https://www.bol.com/be/nl/l/games-voor-de-ps5/51867/?page={0}" # For all games
+base_url = "https://www.bol.com/be/nl/l/games-voor-de-ps5-te-reserveren/51867/1285/?page={0}" # For pre-order games
 log_dir = "./logs"
 
-max_page_number = get_max_page_number((base_url.format(1)))
+while True:
+  print(f"Current time: {datetime.datetime.now()}")
 
-urls = [base_url.format(i) for i in range(1, max_page_number + 1)]
+  max_page_number = get_max_page_number((base_url.format(1)))
 
-all_games = asyncio.run(get_all_games(urls))
+  urls = [base_url.format(i) for i in range(1, max_page_number + 1)]
 
-check_games(all_games, log_dir)
+  all_games = asyncio.run(get_all_games(urls))
+
+  new_games, removed_games = check_games(all_games, log_dir)
+
+  if args.with_email and (new_games or removed_games):
+    send_email(sender_email   = sender_email,
+               receiver_email = receiver_email,
+               password       = password,
+               new_games      = new_games,
+               removed_games  = removed_games)
+
+  time.sleep(10)
