@@ -2,6 +2,7 @@ import os
 import argparse
 import time
 import datetime
+import subprocess
 
 import asyncio
 import aiohttp
@@ -150,6 +151,9 @@ parser = argparse.ArgumentParser(prog        = "game_checker" ,
 parser.add_argument("-e", "--with_email",
                     action = "store_true",
                     help   = "Send email notifications")
+parser.add_argument("-l", "--loop",
+                    action = "store_true",
+                    help   = "Loop the checking script")
 args = parser.parse_args()
 
 # Get email info if needed
@@ -181,4 +185,11 @@ while True:
                new_games      = new_games,
                removed_games  = removed_games)
 
-  time.sleep(10)
+  if args.loop:
+    print("\nWait some time before going to sleep\n")
+    time.sleep(30)
+    subprocess.call(f"sudo rtcwake --mode mem --seconds {60 * 60}", shell = True)
+    print("\nWait some time after waking up\n")
+    time.sleep(30)
+  else:
+    break
