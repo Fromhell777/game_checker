@@ -188,7 +188,7 @@ while True:
   if args.loop:
     print("\nWait some time before going to sleep\n")
     time.sleep(30)
-    subprocess.call(f"sudo rtcwake --mode mem --seconds {60 * 60}", shell = True)
+    subprocess.call(f"rtcwake --mode mem --seconds {60 * 60}", shell = True)
     print("\nWait some time after waking up\n")
     time.sleep(30)
   else:
