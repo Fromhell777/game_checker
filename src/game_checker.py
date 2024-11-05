@@ -170,25 +170,28 @@ log_dir = "./logs"
 while True:
   print(f"Current time: {datetime.datetime.now()}")
 
-  max_page_number = get_max_page_number((base_url.format(1)))
+  try:
+    max_page_number = get_max_page_number((base_url.format(1)))
 
-  urls = [base_url.format(i) for i in range(1, max_page_number + 1)]
+    urls = [base_url.format(i) for i in range(1, max_page_number + 1)]
 
-  all_games = asyncio.run(get_all_games(urls))
+    all_games = asyncio.run(get_all_games(urls))
 
-  new_games, removed_games = check_games(all_games, log_dir)
+    new_games, removed_games = check_games(all_games, log_dir)
 
-  if args.with_email and (new_games or removed_games):
-    send_email(sender_email   = sender_email,
-               receiver_email = receiver_email,
-               password       = password,
-               new_games      = new_games,
-               removed_games  = removed_games)
+    if args.with_email and (new_games or removed_games):
+      send_email(sender_email   = sender_email,
+                 receiver_email = receiver_email,
+                 password       = password,
+                 new_games      = new_games,
+                 removed_games  = removed_games)
+  except Exception as error:
+    print(f"\nAn exception occurred: {error}\n")
 
   if args.loop:
     print("\nWait some time before going to sleep\n")
     time.sleep(30)
-    subprocess.call(f"rtcwake --mode mem --seconds {60 * 60}", shell = True)
+    subprocess.call(f"sudo rtcwake --mode mem --seconds {60 * 60}", shell = True)
     print("\nWait some time after waking up\n")
     time.sleep(30)
   else:
