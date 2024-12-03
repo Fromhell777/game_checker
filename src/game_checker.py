@@ -81,10 +81,18 @@ def check_games(game_list, log_dir):
   with open(prev_game_list_file, 'r') as f:
     prev_game_list = set(f.read().splitlines())
 
+  # Read the full game list that we have seen before
+  seen_game_list = set()
+  seen_game_list_file = f"{log_dir}/seen_game_list.txt"
+  if os.path.isfile(seen_game_list_file):
+    with open(seen_game_list_file, 'r') as f:
+      seen_game_list = set(f.read().splitlines())
+
   # Find games that are new
   new_games = set()
   for game in game_list:
-    if game not in prev_game_list:
+    if game not in prev_game_list and \
+       game not in seen_game_list:
       new_games.add(game)
 
   if new_games:
@@ -113,6 +121,10 @@ def check_games(game_list, log_dir):
   # Update the previous game list
   with open(prev_game_list_file, 'w') as f:
     f.write('\n'.join(sorted(game_list)))
+
+  # Update the full game list that we have seen before
+  with open(seen_game_list_file, 'w') as f:
+    f.write('\n'.join(sorted(seen_game_list.union(game_list))))
 
   return new_games, removed_games
 
@@ -151,10 +163,17 @@ parser = argparse.ArgumentParser(prog        = "game_checker" ,
 parser.add_argument("-e", "--with_email",
                     action = "store_true",
                     help   = "Send email notifications")
+parser.add_argument("-a", "--notify_all",
+                    action = "store_true",
+                    help   = "Send email for new and removed games. Only " + \
+                             "valid with the --with_email option")
 parser.add_argument("-l", "--loop",
                     action = "store_true",
                     help   = "Loop the checking script")
 args = parser.parse_args()
+
+if args.notify_all and (not args.with_email):
+  parser.error("--notify_all requires --with_email.")
 
 # Get email info if needed
 if args.with_email:
@@ -179,12 +198,19 @@ while True:
 
     new_games, removed_games = check_games(all_games, log_dir)
 
-    if args.with_email and (new_games or removed_games):
-      send_email(sender_email   = sender_email,
-                 receiver_email = receiver_email,
-                 password       = password,
-                 new_games      = new_games,
-                 removed_games  = removed_games)
+    if args.with_email:
+      if args.notify_all and (new_games or removed_games):
+        send_email(sender_email   = sender_email,
+                   receiver_email = receiver_email,
+                   password       = password,
+                   new_games      = new_games,
+                   removed_games  = removed_games)
+      elif (not args.notify_all) and new_games:
+        send_email(sender_email   = sender_email,
+                   receiver_email = receiver_email,
+                   password       = password,
+                   new_games      = new_games,
+                   removed_games  = None)
   except Exception as error:
     print(f"\nAn exception occurred: {error}\n")
 
