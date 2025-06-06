@@ -170,13 +170,16 @@ parser.add_argument("-a", "--notify_all",
 parser.add_argument("-l", "--loop",
                     action = "store_true",
                     help   = "Loop the checking script")
+parser.add_argument("-t", "--test_email",
+                    action = "store_true",
+                    help   = "Test sending email notifications")
 args = parser.parse_args()
 
 if args.notify_all and (not args.with_email):
   parser.error("--notify_all requires --with_email.")
 
 # Get email info if needed
-if args.with_email:
+if args.with_email or args.test_email:
   sender_email   = input("Type the sender email and press enter: ")
   receiver_email = input("type the receiver email and press enter: ")
   password       = getpass.getpass(prompt = "Type your password and press enter: ")
@@ -185,6 +188,13 @@ if args.with_email:
 #base_url = "https://www.bol.com/be/nl/l/games-voor-de-ps5/51867/?page={0}" # For all games
 base_url = "https://www.bol.com/be/nl/l/games-voor-de-ps5-te-reserveren/51867/1285/?page={0}" # For pre-order games
 log_dir = "./logs"
+
+if args.test_email:
+  send_email(sender_email   = sender_email,
+             receiver_email = receiver_email,
+             password       = password,
+             new_games      = ["Test game"],
+             removed_games  = [])
 
 while True:
   print(f"Current time: {datetime.datetime.now()}")
