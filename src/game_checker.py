@@ -185,7 +185,7 @@ if args.notify_all and (not args.with_email):
 # Get email info if needed
 if args.with_email or args.test_email:
   sender_email   = input("Type the sender email and press enter: ")
-  receiver_email = input("type the receiver email and press enter: ")
+  receiver_email = input("Type the receiver email and press enter: ")
   password       = getpass.getpass(prompt = "Type your password and press enter: ")
 
 # Check the games
