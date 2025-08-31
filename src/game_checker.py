@@ -26,9 +26,9 @@ def get_max_page_number(url):
 
   max_page_number = 1
 
-  for _, elem in etree.iterwalk(html_tree, tag = "a", ):
-    if ("class" in elem.attrib) and \
-       elem.attrib["class"] == "js_pagination_item":
+  for _, elem in etree.iterwalk(html_tree, tag = "a"):
+    if ("aria-label" in elem.attrib) and \
+       "ga naar pagina" in elem.attrib["aria-label"]:
       max_page_number = max(max_page_number, int(elem.text))
 
   print(f"Max page number: {max_page_number}")
@@ -44,9 +44,10 @@ async def get_games_async(session, url):
     html = await response.text()
 
     html_tree = etree.HTML(html)
-    for _, elem in etree.iterwalk(html_tree, tag = "a"):
+    for _, elem in etree.iterwalk(html_tree, tag = "h2"):
       if ("class" in elem.attrib) and \
-         elem.attrib["class"] == "product-title px_list_page_product_click list_page_product_tracking_target":
+          "Service & contact" not in elem.text and \
+          "PlayStation Exclusives" not in elem.text:
         games.add(elem.text.replace("\n", ""))
 
     return games
@@ -131,6 +132,9 @@ def check_games(game_list, log_dir):
 def send_email(sender_email, receiver_email, password, new_games,
                removed_games):
 
+  def cleanup_charactes(text):
+    return text.encode("ascii", errors = "replace").decode("ascii")
+
   print(f"\nSending mail")
 
   port = 465  # For SSL
@@ -141,14 +145,14 @@ def send_email(sender_email, receiver_email, password, new_games,
     message += "\n#######################\n"
     message += "### New games found ###\n"
     message += "#######################\n\n"
-    message += '\n'.join(sorted(new_games))
+    message += cleanup_charactes('\n'.join(sorted(new_games)))
     message += "\n"
 
   if removed_games:
     message += "\n###########################\n"
     message += "### Removed games found ###\n"
     message += "###########################\n\n"
-    message += '\n'.join(sorted(removed_games))
+    message += cleanup_charactes('\n'.join(sorted(removed_games)))
     message += "\n"
 
   context = ssl.create_default_context()
