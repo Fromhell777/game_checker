@@ -46,8 +46,7 @@ async def get_games_async(session, url):
     html_tree = etree.HTML(html)
     for _, elem in etree.iterwalk(html_tree, tag = "h2"):
       if ("class" in elem.attrib) and \
-          "Service & contact" not in elem.text and \
-          "PlayStation Exclusives" not in elem.text:
+          elem.attrib["class"] == "mb-1 line-clamp-2 overflow-hidden text-ellipsis font-graphik text-14 font-semibold leading-20 text-neutral-text-high md:line-clamp-3":
         games.add(elem.text.replace("\n", ""))
 
     return games
@@ -129,16 +128,12 @@ def check_games(game_list, log_dir):
 
   return new_games, removed_games
 
-def send_email(sender_email, receiver_email, password, new_games,
-               removed_games):
+def send_game_email(sender_email, receiver_email, password, new_games,
+                    removed_games):
 
   def cleanup_charactes(text):
     return text.encode("ascii", errors = "replace").decode("ascii")
 
-  print(f"\nSending mail")
-
-  port = 465  # For SSL
-  smtp_server = "smtp.gmail.com"
   message = "Subject: Game list update\n\n"
 
   if new_games:
@@ -154,6 +149,18 @@ def send_email(sender_email, receiver_email, password, new_games,
     message += "###########################\n\n"
     message += cleanup_charactes('\n'.join(sorted(removed_games)))
     message += "\n"
+
+  send_email(send_email     = send_email,
+             receiver_email = receiver_email,
+             password       = password,
+             message        = message)
+
+def send_email(sender_email, receiver_email, password, message):
+
+  print(f"\nSending mail")
+
+  port = 465  # For SSL
+  smtp_server = "smtp.gmail.com"
 
   context = ssl.create_default_context()
   with smtplib.SMTP_SSL(smtp_server, port, context = context) as server:
@@ -210,21 +217,32 @@ while True:
 
     all_games = asyncio.run(get_all_games(urls))
 
+    if len(all_games) == 0:
+      message = "Something went wrong and no games were found in the HTML"
+      if args.with_email:
+        send_email(sender_email   = sender_email,
+                   receiver_email = receiver_email,
+                   password       = password,
+                   message        = message)
+
+      print(message)
+      exit()
+
     new_games, removed_games = check_games(all_games, log_dir)
 
     if args.with_email:
       if args.notify_all and (new_games or removed_games):
-        send_email(sender_email   = sender_email,
-                   receiver_email = receiver_email,
-                   password       = password,
-                   new_games      = new_games,
-                   removed_games  = removed_games)
+        send_game_email(sender_email   = sender_email,
+                        receiver_email = receiver_email,
+                        password       = password,
+                        new_games      = new_games,
+                        removed_games  = removed_games)
       elif (not args.notify_all) and new_games:
-        send_email(sender_email   = sender_email,
-                   receiver_email = receiver_email,
-                   password       = password,
-                   new_games      = new_games,
-                   removed_games  = None)
+        send_game_email(sender_email   = sender_email,
+                        receiver_email = receiver_email,
+                        password       = password,
+                        new_games      = new_games,
+                        removed_games  = None)
   except Exception as error:
     print(f"\nAn exception occurred: {error}\n")
 
