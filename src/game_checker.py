@@ -207,6 +207,13 @@ if args.test_email:
              new_games      = ["Test game"],
              removed_games  = [])
 
+if args.with_email:
+  message = "Startup mail to test connection"
+  send_email(sender_email   = sender_email,
+             receiver_email = receiver_email,
+             password       = password,
+             message        = message)
+
 while True:
   print(f"Current time: {datetime.datetime.now()}")
 
