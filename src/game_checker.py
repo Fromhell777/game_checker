@@ -49,6 +49,9 @@ async def get_games_async(session, url):
           elem.attrib["class"] == "mb-1 line-clamp-2 overflow-hidden text-ellipsis font-graphik text-14 font-semibold leading-20 text-neutral-text-high md:line-clamp-3":
         games.add(elem.text.replace("\n", ""))
 
+    if len(games) == 0:
+      print(html)
+
     return games
 
 async def get_all_games(urls):
@@ -197,7 +200,7 @@ if args.with_email or args.test_email:
 
 # Check the games
 #base_url = "https://www.bol.com/be/nl/l/games-voor-de-ps5/51867/?page={0}" # For all games
-base_url = "https://www.bol.com/be/nl/l/games-voor-de-ps5-te-reserveren/51867/1285/?page={0}" # For pre-order games
+base_url = "https://www.bol.com/be/nl/l/games-voor-de-ps5-te-reserveren/74745/1285/?page={0}" # For pre-order games
 log_dir = "./logs"
 
 if args.test_email:
