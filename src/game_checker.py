@@ -153,7 +153,7 @@ def send_game_email(sender_email, receiver_email, password, new_games,
     message += cleanup_charactes('\n'.join(sorted(removed_games)))
     message += "\n"
 
-  send_email(send_email     = send_email,
+  send_email(sender_email   = sender_email,
              receiver_email = receiver_email,
              password       = password,
              message        = message)
