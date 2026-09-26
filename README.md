@@ -7,6 +7,22 @@ Checks if a new game is available in the store
 The following Python packages are required:
 
 * aiohttp
+* selenium
+* requests
+* lxml
+
+You can setup a Python environment as follows:
+
+```bash
+cd setup_python_env
+. setup_python.sh
+```
+
+If you want to deactivate that environment, simply execute:
+
+```bash
+deactivate
+```
 
 ## Setup mail account
 

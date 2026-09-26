@@ -7,14 +7,25 @@ import subprocess
 import asyncio
 import aiohttp
 import requests
+from selenium import webdriver
 from lxml import etree
 
 import smtplib, ssl
 import getpass
 
 # Get the HTML from a url
-def get_html_data(url):
-  html = requests.get(url).text
+def get_html_data(url, use_simple_request = False):
+
+  if use_simple_request:
+    html = requests.get(url).text
+  else:
+    geckodriver_path = "/snap/bin/geckodriver"
+    driver_service = webdriver.FirefoxService(executable_path=geckodriver_path)
+
+    browser = webdriver.Firefox(service=driver_service)
+    browser.get(url)
+    html = browser.page_source
+    browser.close()
 
   return html
 
@@ -39,22 +50,39 @@ async def get_games_async(session, url):
   print(f"Collecting games from: {url}")
 
   async with session.get(url, timeout = 60) as response:
-    games = set()
 
     html = await response.text()
 
+    games = set()
     html_tree = etree.HTML(html)
     for _, elem in etree.iterwalk(html_tree, tag = "h2"):
       if ("class" in elem.attrib) and \
-          elem.attrib["class"] == "mb-1 line-clamp-2 overflow-hidden text-ellipsis font-graphik text-14 font-semibold leading-20 text-neutral-text-high md:line-clamp-3":
+          elem.attrib["class"] == "mb-1 line-clamp-2 overflow-hidden font-graphik text-14 leading-20 font-semibold text-ellipsis text-neutral-text-high md:line-clamp-3":
         games.add(elem.text.replace("\n", ""))
 
     if len(games) == 0:
       print(html)
 
-    return games
+  return games
 
-async def get_all_games(urls):
+def get_games(url):
+  print(f"Collecting games from: {url}")
+
+  html = get_html_data(url)
+
+  games = set()
+  html_tree = etree.HTML(html)
+  for _, elem in etree.iterwalk(html_tree, tag = "h2"):
+    if ("class" in elem.attrib) and \
+        elem.attrib["class"] == "mb-1 line-clamp-2 overflow-hidden font-graphik text-14 leading-20 font-semibold text-ellipsis text-neutral-text-high md:line-clamp-3":
+      games.add(elem.text.replace("\n", ""))
+
+  if len(games) == 0:
+    print(html)
+
+  return games
+
+async def get_all_games_async(urls):
   print("Extracting game lists")
 
   async with aiohttp.ClientSession() as session:
@@ -65,6 +93,15 @@ async def get_all_games(urls):
     games = await asyncio.gather(*tasks)
 
   return set().union(*games)
+
+def get_all_games(urls):
+  print("Extracting game lists")
+
+  games = set()
+  for url in urls:
+    games = games.union(get_games(url))
+
+  return games
 
 def check_games(game_list, log_dir):
 
@@ -225,7 +262,10 @@ while True:
 
     urls = [base_url.format(i) for i in range(1, max_page_number + 1)]
 
-    all_games = asyncio.run(get_all_games(urls))
+    if False:
+      all_games = asyncio.run(get_all_games_async(urls))
+    else:
+      all_games = get_all_games(urls)
 
     if len(all_games) == 0:
       message = "Something went wrong and no games were found in the HTML"
