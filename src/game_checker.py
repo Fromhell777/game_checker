@@ -24,9 +24,11 @@ def get_html_data(url, use_simple_request = False):
 
     browser = webdriver.Firefox(service=driver_service)
     browser.get(url)
+    # Avoid bursts in web page accesses.
+    # Also allow the page to load correctly and not return Akamai protected HTML
+    time.sleep(3)
     html = browser.page_source
     browser.close()
-    time.sleep(10) # Avoid bursts in web page accesses
 
   return html
 
@@ -245,8 +247,7 @@ if args.test_email:
   send_email(sender_email   = sender_email,
              receiver_email = receiver_email,
              password       = password,
-             new_games      = ["Test game"],
-             removed_games  = [])
+             message        = "Test email connection")
 
 if args.with_email:
   message = "Startup mail to test connection"
