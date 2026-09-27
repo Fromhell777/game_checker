@@ -26,6 +26,7 @@ def get_html_data(url, use_simple_request = False):
     browser.get(url)
     html = browser.page_source
     browser.close()
+    time.sleep(10) # Avoid bursts in web page accesses
 
   return html
 
