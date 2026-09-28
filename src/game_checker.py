@@ -26,7 +26,7 @@ def get_html_data(url, use_simple_request = False):
     browser.get(url)
     # Avoid bursts in web page accesses.
     # Also allow the page to load correctly and not return Akamai protected HTML
-    time.sleep(3)
+    time.sleep(10)
     html = browser.page_source
     browser.close()
 
@@ -301,7 +301,7 @@ while True:
   if args.loop:
     print("\nWait some time before going to sleep\n")
     time.sleep(30)
-    subprocess.call(f"sudo rtcwake --mode mem --seconds {60 * 60}", shell = True)
+    subprocess.call(f"sudo rtcwake --mode mem --seconds {60 * 60 * 3}", shell = True)
     print("\nWait some time after waking up\n")
     time.sleep(30)
   else:
