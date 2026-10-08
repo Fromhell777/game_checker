@@ -3,6 +3,7 @@ import argparse
 import time
 import datetime
 import subprocess
+import random
 
 import asyncio
 import aiohttp
@@ -26,7 +27,8 @@ def get_html_data(url, use_simple_request = False):
     browser.get(url)
     # Avoid bursts in web page accesses.
     # Also allow the page to load correctly and not return Akamai protected HTML
-    time.sleep(10)
+    sleep_time = random.randint(10, 30)
+    time.sleep(sleep_time)
     html = browser.page_source
     browser.close()
 
@@ -301,7 +303,8 @@ while True:
   if args.loop:
     print("\nWait some time before going to sleep\n")
     time.sleep(30)
-    subprocess.call(f"sudo rtcwake --mode mem --seconds {60 * 60 * 3}", shell = True)
+    sleep_hours = random.randint(4, 8)
+    subprocess.call(f"sudo rtcwake --mode mem --seconds {60 * 60 * sleep_hours}", shell = True)
     print("\nWait some time after waking up\n")
     time.sleep(30)
   else:
