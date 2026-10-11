@@ -27,7 +27,7 @@ def get_html_data(url, use_simple_request = False):
     browser.get(url)
     # Avoid bursts in web page accesses.
     # Also allow the page to load correctly and not return Akamai protected HTML
-    sleep_time = random.randint(10, 30)
+    sleep_time = random.randint(60, 120)
     time.sleep(sleep_time)
     html = browser.page_source
     browser.close()
