@@ -40,7 +40,7 @@ def get_max_page_number(url):
 
   html_tree = etree.HTML(get_html_data(url))
 
-  max_page_number = 1
+  max_page_number = -1
 
   for _, elem in etree.iterwalk(html_tree, tag = "a"):
     if ("aria-label" in elem.attrib) and \
@@ -48,6 +48,9 @@ def get_max_page_number(url):
       max_page_number = max(max_page_number, int(elem.text))
 
   print(f"Max page number: {max_page_number}")
+
+  if max_page_number == -1:
+    print(html_tree)
 
   return max_page_number
 
@@ -263,6 +266,17 @@ while True:
 
   try:
     max_page_number = get_max_page_number((base_url.format(1)))
+
+    if max_page_number == -1:
+      message = "Something went wrong and no max page number was found in the HTML"
+      if args.with_email:
+        send_email(sender_email   = sender_email,
+                   receiver_email = receiver_email,
+                   password       = password,
+                   message        = message)
+
+      print(message)
+      exit()
 
     urls = [base_url.format(i) for i in range(1, max_page_number + 1)]
 
