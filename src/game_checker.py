@@ -50,7 +50,7 @@ def get_max_page_number(url):
   print(f"Max page number: {max_page_number}")
 
   if max_page_number == -1:
-    print(html_tree)
+    print(etree.tostring(html_tree))
 
   return max_page_number
 
